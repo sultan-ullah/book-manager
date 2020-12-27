@@ -1,7 +1,5 @@
-
-import * as dbConfig from './dbConfig.js';
+import dbConfig from './dbConfig';
 import { MongoClient } from 'mongodb';
-console.log(dbConfig);
 class BookDatabaseClient {
   uri: any;
   dbName: any;
