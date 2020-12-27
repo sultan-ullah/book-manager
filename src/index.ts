@@ -1,12 +1,13 @@
 import dbConfig from './dbConfig';
 import { MongoClient } from 'mongodb';
 class BookDatabaseClient {
-  uri: any;
-  dbName: any;
-  collectionName: any;
-  client: any;
-  collection: any;
-  constructor({uri, dbName, collectionName}) {
+  private uri: string;
+  private dbName: string;
+  private collectionName: string;
+  private client: any;
+  private collection: any;
+
+  public constructor({uri, dbName, collectionName}) {
     this.uri = uri;
     this.dbName = dbName;
     this.collectionName = collectionName;
@@ -14,7 +15,7 @@ class BookDatabaseClient {
     this.client = new MongoClient(this.uri, { useNewUrlParser: true, useUnifiedTopology: true });
   }
 
-  async connect() {
+  public async connect(): Promise<void> {
     try {
       if (!this.collection) {
         await this.client.connect();
@@ -27,11 +28,11 @@ class BookDatabaseClient {
     }
   }
 
-  async getAllItems() {
-    return new Promise((resolve, reject) => {
+  public async getAllItems(): Promise<Object[]> {
+    return new Promise<Object[]>((resolve, reject) => {
       if (this.collection) {
         const cursor = this.collection.find({});
-        const items = [];
+        const items: Object[] = [];
         cursor.on('data', data => items.push(data));
         cursor.on('end', () => resolve(items));
       } else {
@@ -40,19 +41,19 @@ class BookDatabaseClient {
     })
   }
 
-  async getOneItem() {
+  public async getOneItem() {
     
   }
 
-  async insertItem() {
+  public async insertItem() {
 
   }
 
-  async deleteItem() {
+  public async deleteItem() {
 
   }
 
-  async updateItem() {
+  public async updateItem() {
 
   }
 }
