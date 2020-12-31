@@ -23,6 +23,15 @@ class BookDatabaseClient {
     return this.collection;
   }
 
+  public async close() {
+    if (this.client) {
+      await this.client.close();
+      console.log('Closed the database client');
+    }
+
+    return;
+  }
+
   public async getAllItems(): Promise<Object[]> {
     return new Promise<Object[]>((resolve, reject) => {
       if (!this.collection) reject(new Error('collection is not defined'));
@@ -33,7 +42,9 @@ class BookDatabaseClient {
     })
   }
 
-  public async getOneItem(query: {title?: string, author?: string, notes?: string}): Promise<Book | null> {
+  public async getOneItem(
+    query: { title?: string, author?: string, notes?: string}): 
+    Promise<Book | null> {
     if (!this.collection) throw new Error('collection is not defined');
     const result = await this.collection.findOne(query);
     if (result === null) console.log('no results found');
