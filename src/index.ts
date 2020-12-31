@@ -1,16 +1,19 @@
 import dbConfig from './db/dbConfig';
 import BookDatabaseClient from './db/BookDatabaseClient';
+import * as express from 'express';
 
 (async () => {
   try {
-    const { URI, DB, COLLECTION } = dbConfig;
-    const dbClient = new BookDatabaseClient(URI);
-    await dbClient.connect(DB, COLLECTION);
-    const result = await dbClient.updateOneItem({ title: 'first book'}, {author: 'updated first author'});
-    console.log(result);
+    const app = express()
+    const port = 3000
 
-    const items = await dbClient.getAllItems();
-    console.log('------\n' + JSON.stringify(items, null, 2));
+    app.get('/', (req, res) => {
+      res.send('Hello World!')
+    });
+
+    app.listen(port, () => {
+      console.log(`Example app listening at http://localhost:${port}`)
+    })
   } catch (error) {
     console.log(error);
   }
