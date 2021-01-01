@@ -9,27 +9,24 @@ interface Book {
 class BookDatabaseClient {
   private client: any;
   private collection: any;
-
-  public constructor(uri: string) {
-    this.client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-  }
+  private count: number = 0;
+  
+  public constructor(private uri: string) { }
 
   public async connect(dbName: string, collectionName: string): Promise<void> {
-    if (!this.collection) {
-      await this.client.connect();
-      this.collection = this.client.db(dbName).collection(collectionName);
-    }
-
+    this.client = new MongoClient(this.uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    await this.client.connect();
+    this.collection = this.client.db(dbName).collection(collectionName);
     return this.collection;
   }
 
   public async close() {
     if (this.client) {
       await this.client.close();
+      this.client = undefined;
+      this.collection = undefined;
       console.log('Closed the database client');
     }
-
-    return;
   }
 
   public async getAllItems(): Promise<Object[]> {
@@ -44,18 +41,26 @@ class BookDatabaseClient {
 
   public async getOneItem(
     query: { title?: string, author?: string, notes?: string}): 
-    Promise<Book | null> {
+    Promise<any> {
+
     if (!this.collection) throw new Error('collection is not defined');
-    const result = await this.collection.findOne(query);
-    if (result === null) console.log('no results found');
+    let result = await this.collection.findOne(query);
+
+    if (result === null) {
+      console.log('No results found');
+      return { error: 'No results found'};
+    }
+
     return result;
   }
 
-  public async insertItem(doc: Book): Promise<Book> {
+  public async insertItem(doc: Book): Promise<Book | { error: string }> {
     if (!this.collection) throw new Error('collection is not defined');
-    const { result, ops } = await this.collection.insertOne(doc);
+
+    const { result, ops } = await this.collection.insertOne({ _id: this.count + 1, ...doc });
     if (result.ok === 1) {
       console.log('document inserted successfully');
+      this.count += 1;
     } else {
       throw Error('could not insert document');
     }
@@ -63,10 +68,16 @@ class BookDatabaseClient {
     return ops[0];
   }
 
-  public async deleteOneItem(query: {title?: string, author?: string}): Promise<Book | null> {
+  public async deleteOneItem(query: {title?: string, author?: string}): Promise<Book | { error: string }> {
     if (!this.collection) throw new Error('collection is not defined');
     const { value } = await this.collection.findOneAndDelete(query);
-    if (value === null) console.log('no document found');
+    
+    if (value === null) {
+      console.log('no document found');
+      return { error: 'No document found' };
+    }
+
+    this.count -= 1;
     return value;
   }
 
