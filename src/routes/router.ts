@@ -6,75 +6,91 @@ const { URI, DB, COLLECTION } = dbConfig;
 const router = express.Router();
 const dbClient = new BookDatabaseClient(URI);
 
-router.get('/books/:id', async (req, res) => {
-  await dbClient.connect(DB, COLLECTION);
+// -------------------------------------------
 
-  if (req.query.title && req.query.author) {
-    
-    const query: { title?: string, author?: string, notes?: string } = {};
-    const { title, author, notes } = req.query;
-
-    if (title) query.title = title;
-    if (author) query.author = author;
-    if (notes) query.notes = notes;
-    
-    const item = await dbClient.getOneItem(query);
-    await dbClient.close();
-    res.send(item);
-    
-  } else {
-
+router.get('/books', async (req, res) => {
+  try {
     await dbClient.connect(DB, COLLECTION);
     const items = await dbClient.getAllItems();
     await dbClient.close();
     res.send(items);
-
+  } catch (e) {
+    await dbClient.close();
+    res.send(e);
   }
 });
 
-router.post('/books', async (req, res) => {
-  const { title, author } = req.body;
+// -------------------------------------------
 
-  if (!title || !author) res.send({ error: 'Book must have atleast title and author'});
-  
-  await dbClient.connect(DB, COLLECTION);
+router.get('/books/:id', async (req, res) => {
+  try {
+    await dbClient.connect(DB, COLLECTION);
+    const item = await dbClient.getOneItem(req.params.id);
 
-  const toCreate: { title: string, author: string, notes: string } = { title: '', author: '', notes: ''};
-  toCreate.title = title;
-  toCreate.author = author;
-
-  const item = await dbClient.insertItem(toCreate);
-
-  await dbClient.close();
-  res.send(item);
+    await dbClient.close();
+    res.send(item);
+  } catch (e) {
+    await dbClient.close();
+    res.send(e);
+  }
 });
+
+// -------------------------------------------
+
+router.post('/books', async (req, res) => {
+  try {
+    const { title, author, notes } = req.body;
+
+    if (!title && !author) res.send({ error: 'Book must have atleast title and author' });
+
+    await dbClient.connect(DB, COLLECTION);
+    const toCreate = { title, author, notes };
+    const item = await dbClient.insertItem(toCreate);
+
+    await dbClient.close();
+    res.send(item);
+  } catch (e) {
+    await dbClient.close();
+    res.send(e);
+  }
+});
+
+// -------------------------------------------
 
 router.delete('/books/:id', async (req, res) => {
-  const { title, author } = req.body;
+  try {
+    await dbClient.connect(DB, COLLECTION);
 
-  if (!title || !author) res.send({ error: 'Book must have atleast title and author'});
-
-  await dbClient.connect(DB, COLLECTION);
-
-  const toDelete: { title?: string, author?: string, notes?: string} = {};
-  toDelete.title = title;
-  toDelete.author = author;
-
-  const item = await dbClient.deleteOneItem(toDelete);
-  res.send(item);
+    const item = await dbClient.deleteOneItem(req.params.id);
+    await dbClient.close();
+    res.send(item);
+  } catch (e) {
+    await dbClient.close();
+    res.send(e);
+  }
 });
 
+// -------------------------------------------
+
 router.put('/books/:id', async (req, res) => {
-  await dbClient.connect(DB, COLLECTION);
+  try {
+    const { title, author, notes } = req.body;
 
-  if (req.params.title) {
-    
-    const title = req.params.title;
-    const updated = dbClient.updateOneItem({ title }, req.body);
+    await dbClient.connect(DB, COLLECTION);
 
-    res.send(updated);
-  } else {
-    res.send({ error: 'query must include title' });
+    const toUpdate: { title?: string, author?: string, notes?: string} = {};
+
+    if (title) toUpdate.title = title;
+    if (author) toUpdate.author = author;
+    if (notes) toUpdate.notes = notes;
+
+    const item = await dbClient.updateOneItem(req.params.id, toUpdate);
+
+    await dbClient.close();
+    res.send({ ...item, ...toUpdate });
+  } catch (e) {
+    await dbClient.close();
+    res.send(e);
   }
 });
 

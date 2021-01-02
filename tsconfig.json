@@ -1,15 +1,9 @@
 {
   "compilerOptions": {
-    "target": "es2016",
-    "module": "commonjs",
+    "target": "ES6",
+    "module": "CommonJS",
     "outDir": "dist",
-    "sourceMap": true,
-    "allowJs": true,
-  },
-  "include": [
-    "src/index.ts",
-    "src/db/*.ts"  ],
-  "exclude": [
-    "node_modules"
-  ],
+    "rootDir": "src",
+    "sourceMap": true
+  }
 }

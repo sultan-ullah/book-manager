@@ -1,5 +1,5 @@
 export default {
-  DB: "<db>",
-  COLLECTION: "<collection>",
-  URI: `<connection URI>`
-}
+  DB: '<db>',
+  COLLECTION: '<collection>',
+  URI: '<connection URI>',
+};

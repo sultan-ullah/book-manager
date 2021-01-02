@@ -1,22 +1,27 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, Collection, Cursor, ObjectID } from 'mongodb';
 
 interface Book {
   title: string;
   author: string;
-  notes: string;
-};
+  notes?: string;
+}
 
 class BookDatabaseClient {
-  private client: any;
-  private collection: any;
-  private count: number = 0;
-  
-  public constructor(private uri: string) { }
+  private client: MongoClient;
 
-  public async connect(dbName: string, collectionName: string): Promise<void> {
+  private collection: Collection;
+
+  private uri: string;
+
+  public constructor(uri: string) {
+    this.uri = uri;
+  }
+
+  public async connect(dName: string, cName: string): Promise<Collection> {
     this.client = new MongoClient(this.uri, { useNewUrlParser: true, useUnifiedTopology: true });
     await this.client.connect();
-    this.collection = this.client.db(dbName).collection(collectionName);
+    this.collection = this.client.db(dName).collection(cName);
+    
     return this.collection;
   }
 
@@ -25,68 +30,74 @@ class BookDatabaseClient {
       await this.client.close();
       this.client = undefined;
       this.collection = undefined;
+      
       console.log('Closed the database client');
+    } else {
+      console.log('Client is not defined');
+      return;
     }
   }
 
-  public async getAllItems(): Promise<Object[]> {
-    return new Promise<Object[]>((resolve, reject) => {
-      if (!this.collection) reject(new Error('collection is not defined'));
-      const cursor = this.collection.find({});
-      const items: Object[] = [];
-      cursor.on('data', data => items.push(data));
+  public async getAllItems() {
+    return new Promise<Book[]>((resolve, reject) => {
+      if (!this.collection) reject({ error: 'Collection is not defined' });
+      
+      const cursor: Cursor = this.collection.find({});
+      const items: Book[] = [];
+
+      cursor.on('data', (data) => items.push(data));
       cursor.on('end', () => resolve(items));
-    })
+    });
   }
 
-  public async getOneItem(
-    query: { title?: string, author?: string, notes?: string}): 
-    Promise<any> {
+  public async getOneItem(id: string): Promise <Book> {
+    if (!this.collection) throw { error: 'Collection is not defined' };
 
-    if (!this.collection) throw new Error('collection is not defined');
-    let result = await this.collection.findOne(query);
+    const result: Book = await this.collection.findOne({ "_id": new ObjectID(id) });
 
-    if (result === null) {
-      console.log('No results found');
-      return { error: 'No results found'};
-    }
+    if (result === null) throw { error: 'No results found' };
 
     return result;
   }
 
-  public async insertItem(doc: Book): Promise<Book | { error: string }> {
-    if (!this.collection) throw new Error('collection is not defined');
+  public async insertItem(bookToInsert: Book): Promise<Book> {
+    if (!this.collection) throw { error: 'Collection is not defined'};
 
-    const { result, ops } = await this.collection.insertOne({ _id: this.count + 1, ...doc });
+    if (!bookToInsert.notes) bookToInsert.notes = "";
+
+    const { result, ops } = await this.collection.insertOne(bookToInsert);
+    
     if (result.ok === 1) {
-      console.log('document inserted successfully');
-      this.count += 1;
+      console.log('Document inserted successfully');
     } else {
-      throw Error('could not insert document');
+      throw { error: 'Could not insert book'};
     }
 
     return ops[0];
   }
 
-  public async deleteOneItem(query: {title?: string, author?: string}): Promise<Book | { error: string }> {
-    if (!this.collection) throw new Error('collection is not defined');
-    const { value } = await this.collection.findOneAndDelete(query);
-    
+  public async deleteOneItem( id: string ): Promise<Book> {
+    if (!this.collection) throw { error: 'Collection is not defined'};
+
+    const { value } = await this.collection.findOneAndDelete({ "_id": new ObjectID(id) });
+
     if (value === null) {
-      console.log('no document found');
-      return { error: 'No document found' };
+      console.log('No document found');
+      throw { error: 'No document found' };
     }
 
-    this.count -= 1;
     return value;
   }
 
-  public async updateOneItem(
-    query: {title?: string, author?: string}, 
-    updateValues: {title?: string, author?: string, notes?: string}): Promise<Object | null> {
-    if (!this.collection) throw new Error('collection is not defined');
-    const { value } = await this.collection.findOneAndUpdate(query, { $set: updateValues});
-    if (value === null) console.log('no document found');
+  public async updateOneItem( id: string, updateValues: {title?: string, author?: string, notes?: string}) {
+    if (!this.collection) throw { error: 'Collection is not defined'};
+    const { value } = await this.collection.findOneAndUpdate({ "_id": new ObjectID(id) }, { $set: updateValues });
+    
+    if (value === null) {
+      console.log('No document found');
+      throw { error: 'No document found'};
+    }
+
     return value;
   }
 }
